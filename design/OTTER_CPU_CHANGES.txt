@@ -1,0 +1,40 @@
+// This is not a working Verilog file.
+// It is just the changes you have to make to the main OTTER CPU/MCU file to support the AXI MHUB.
+
+// New I/O
+                input init_calib_complete,  // ADDED FOR DDR3
+                axi_ro.controller mem1,     // ADDED FOR DDR3
+                axi_rw.controller mem2,     // ADDED FOR DDR3
+                axi_rw.controller mem_prog  // ADDED FOR DDR3
+
+// Otter Protocol -> AXI Protocol Translators
+otter_ro cpu1();
+    otter_rw cpu2();
+    otter_rw cpu_prog();
+    
+    otter_axi_ro_trans cpu1_mem1_trans(
+        .clk(CLK), .cpu(cpu1), .mem(mem1)
+    );
+    
+    otter_axi_rw_trans cpu2_mem2_trans(
+        .clk(CLK), .cpu(cpu2), .mem(mem2)
+    );
+    
+    otter_axi_rw_trans cpu_mem_prog_trans(
+        .clk(CLK), .cpu(cpu_prog), .mem(mem_prog)
+    );
+
+// Signal assignments for translators
+    assign cpu1.addr = pc;
+    assign cpu1.memRead = memRead1;
+    assign IR = cpu1.dout;
+    
+    assign cpu2.addr = aluResult;
+    assign cpu2.din = B;
+    assign cpu2.memRead = memRead2;
+    assign cpu2.memWrite = memWrite;
+    assign cpu2.size = IR[13:12];
+    assign cpu2.sign = IR[14];
+    assign mem_data = cpu2.dout;
+        
+    assign s_stall = cpu1.stall | cpu2.stall | cpu_prog.stall | ~init_calib_complete;
